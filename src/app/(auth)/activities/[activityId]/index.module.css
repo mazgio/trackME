@@ -78,6 +78,6 @@
 
 .error {
   padding: var(--space-8);
-  color: #dc2626;
+  color: var(--color-error);
   font-size: var(--text-sm);
 }

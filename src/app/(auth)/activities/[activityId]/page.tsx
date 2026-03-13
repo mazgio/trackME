@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
@@ -7,6 +8,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import { useActivity } from "@/hooks/useActivity"
 import { toActivityDetailViewModel } from "./viewModel"
 import EditableTitle from "@/components/EditableTitle"
+import SplitsList from "@/components/SplitsList"
+import ElevationChart from "@/components/ElevationChart"
 import routing from "@/lib/routing"
 import styles from "./index.module.css"
 
@@ -15,6 +18,8 @@ const ActivityMap = dynamic(() => import("@/components/ActivityMap"), { ssr: fal
 export default function ActivityDetailPage() {
   const { activityId } = useParams<{ activityId: string }>()
   const state = useActivity(activityId)
+  const [hoverDist, setHoverDist] = useState<number | null>(null)
+  const [chartHoverPoint, setChartHoverPoint] = useState<{ lat: number; lon: number } | null>(null)
 
   if (state.status === "loading") return <div className={styles.loading}>Loading...</div>
   if (state.status === "error") return <div className={styles.error}>{state.message}</div>
@@ -52,7 +57,9 @@ export default function ActivityDetailPage() {
         </div>
       </div>
 
-      <ActivityMap points={activity.points} />
+      <ActivityMap points={activity.points} onHoverDist={setHoverDist} hoverPoint={chartHoverPoint} />
+      <ElevationChart points={activity.points} activeDist={hoverDist} onHoverPoint={setChartHoverPoint} />
+      <SplitsList splits={activity.splits} />
     </div>
   )
 }

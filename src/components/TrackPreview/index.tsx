@@ -44,7 +44,7 @@ export default function TrackPreview({ points, width = 120, height = 80, classNa
       className={className}
       aria-hidden
     >
-      <path d={d} fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

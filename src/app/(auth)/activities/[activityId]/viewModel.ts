@@ -1,4 +1,5 @@
 import { ELLIPSIS } from "@/lib/constants"
+import { haversine } from "@/lib/geo"
 import type { ActivityViewModel } from "@/types"
 
 export type ActivityDetailRaw = {
@@ -11,10 +12,17 @@ export type ActivityDetailRaw = {
   trackJson: string | null
 }
 
+export type KmSplit = {
+  km: number
+  pace: string
+  point: { lat: number; lon: number }
+}
+
 export type ActivityDetailViewModel = ActivityViewModel & {
   pace: string
   elevationGain: string
-  points: Array<{ lat: number; lon: number; ele?: number }>
+  points: Array<{ lat: number; lon: number; ele?: number; time?: number }>
+  splits: KmSplit[]
 }
 
 export function toActivityDetailViewModel(activity: ActivityDetailRaw): ActivityDetailViewModel {
@@ -29,8 +37,9 @@ export function toActivityDetailViewModel(activity: ActivityDetailRaw): Activity
   const points = parsePoints(activity.trackJson)
   const pace = activity.distanceM && activity.durationS ? formatPace(activity.durationS, activity.distanceM) : ELLIPSIS
   const elevationGain = points.length > 0 ? `${calcElevationGain(points)} m` : ELLIPSIS
+  const splits = calcKmSplits(points)
 
-  return { id: activity.id, title, sportType: activity.sportType, distance, duration, date, pace, elevationGain, points }
+  return { id: activity.id, title, sportType: activity.sportType, distance, duration, date, pace, elevationGain, points, splits }
 }
 
 function formatDuration(seconds: number): string {
@@ -60,13 +69,38 @@ function calcElevationGain(points: Array<{ ele?: number }>): number {
   return Math.round(gain)
 }
 
-function parsePoints(trackJson: string | null): Array<{ lat: number; lon: number; ele?: number }> {
+
+function calcKmSplits(points: Array<{ lat: number; lon: number; ele?: number; time?: number }>): KmSplit[] {
+  const splits: KmSplit[] = []
+  let accumulated = 0
+  let nextKm = 1
+  let kmStartTime = points[0]?.time
+
+  for (let i = 1; i < points.length; i++) {
+    accumulated += haversine(points[i - 1], points[i])
+    if (accumulated >= nextKm * 1000) {
+      const point = points[i]
+      const kmEndTime = point.time
+      const pace =
+        kmStartTime != null && kmEndTime != null
+          ? formatPace(Math.round((kmEndTime - kmStartTime) / 1000), 1000)
+          : ELLIPSIS
+      splits.push({ km: nextKm, pace, point: { lat: point.lat, lon: point.lon } })
+      kmStartTime = kmEndTime
+      nextKm++
+    }
+  }
+
+  return splits
+}
+
+function parsePoints(trackJson: string | null): Array<{ lat: number; lon: number; ele?: number; time?: number }> {
   if (!trackJson) return []
   try {
     const parsed: unknown = JSON.parse(trackJson)
     if (!Array.isArray(parsed)) return []
     return parsed.filter(
-      (p): p is { lat: number; lon: number; ele?: number } =>
+      (p): p is { lat: number; lon: number; ele?: number; time?: number } =>
         typeof p === "object" && p !== null && typeof p.lat === "number" && typeof p.lon === "number"
     )
   } catch {

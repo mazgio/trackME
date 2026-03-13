@@ -9,6 +9,18 @@
   --color-text-secondary:   #52525b;
   --color-text-muted:       #a1a1aa;
 
+  /* ─── Accent & semantic ──────────────────────────────────── */
+  --color-accent:           #f97316;
+  --color-accent-muted:     rgba(249, 115, 22, 0.35);
+  --color-hover-dot:        #3b82f6;
+  --color-error:            #dc2626;
+  --color-error-bg:         #fef2f2;
+  --color-chart-ref:        #64748b;
+  --color-white:            #ffffff;
+
+  /* ─── Shadows ────────────────────────────────────────────── */
+  --shadow-card:            0 2px 8px rgba(0, 0, 0, 0.06);
+
   /* ─── Spacing ───────────────────────────────────────────── */
   --space-1:   4px;
   --space-2:   8px;

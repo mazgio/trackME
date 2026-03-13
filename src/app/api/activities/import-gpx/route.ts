@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const eleRegex = /<ele>([^<]+)<\/ele>/
   const timeRegex = /<time>([^<]+)<\/time>/
 
-  const points: Array<{ lat: number; lon: number; ele?: number }> = []
+  const points: Array<{ lat: number; lon: number; ele?: number; time?: number }> = []
   const timestamps: number[] = []
   let match: RegExpExecArray | null
 
@@ -32,11 +32,15 @@ export async function POST(req: Request) {
     const timeMatch = timeRegex.exec(inner)
 
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      points.push({ lat, lon, ele: Number.isFinite(ele) ? ele : undefined })
+      let time: number | undefined
       if (timeMatch) {
         const t = Date.parse(timeMatch[1])
-        if (!Number.isNaN(t)) timestamps.push(t)
+        if (!Number.isNaN(t)) {
+          time = t
+          timestamps.push(t)
+        }
       }
+      points.push({ lat, lon, ele: Number.isFinite(ele) ? ele : undefined, time })
     }
   }
 

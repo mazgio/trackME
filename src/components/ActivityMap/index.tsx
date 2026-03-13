@@ -1,26 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, Popup, useMap } from "react-leaflet"
+import { useEffect, useMemo, useState } from "react"
+import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, Popup, useMap, useMapEvents } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
+import { haversine, buildCumDists } from "@/lib/geo"
 import styles from "./index.module.css"
 
 type Point = { lat: number; lon: number; ele?: number }
 
 type Props = {
   points: Point[]
-}
-
-const R = 6371000
-const toRad = (d: number) => (d * Math.PI) / 180
-
-function haversine(a: Point, b: Point): number {
-  const dLat = toRad(b.lat - a.lat)
-  const dLon = toRad(b.lon - a.lon)
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
+  onHoverDist?: (dist: number | null) => void
+  hoverPoint?: { lat: number; lon: number } | null
 }
 
 function kmMarkers(points: Point[]): Array<{ point: Point; km: number }> {
@@ -38,6 +29,7 @@ function kmMarkers(points: Point[]): Array<{ point: Point; km: number }> {
 
   return markers
 }
+
 
 function KmMarker({ point, km }: { point: Point; km: number }) {
   const [street, setStreet] = useState<string | null>(null)
@@ -64,7 +56,7 @@ function KmMarker({ point, km }: { point: Point; km: number }) {
     <CircleMarker
       center={[point.lat, point.lon]}
       radius={8}
-      pathOptions={{ color: "#fff", fillColor: "#f97316", fillOpacity: 1, weight: 2 }}
+      pathOptions={{ color: "var(--color-white)", fillColor: "var(--color-accent)", fillOpacity: 1, weight: 2 }}
       eventHandlers={{ click: handleClick }}
     >
       <Tooltip permanent direction="top" offset={[0, -10]} className="km-label">
@@ -96,7 +88,39 @@ function FitBounds({ points }: { points: Point[] }) {
   return null
 }
 
-export default function ActivityMap({ points }: Props) {
+function MapHoverTracker({
+  points,
+  cumDists,
+  onHoverDist,
+}: {
+  points: Point[]
+  cumDists: number[]
+  onHoverDist: (dist: number | null) => void
+}) {
+  useMapEvents({
+    mousemove(e) {
+      const cursor = { lat: e.latlng.lat, lon: e.latlng.lng }
+      let nearest = 0
+      let minDist = Infinity
+      for (let i = 0; i < points.length; i++) {
+        const d = haversine(cursor, points[i])
+        if (d < minDist) {
+          minDist = d
+          nearest = i
+        }
+      }
+      onHoverDist(cumDists[nearest] / 1000)
+    },
+    mouseout() {
+      onHoverDist(null)
+    },
+  })
+  return null
+}
+
+export default function ActivityMap({ points, onHoverDist, hoverPoint }: Props) {
+  const cumDists = useMemo(() => buildCumDists(points), [points])
+
   if (points.length === 0) {
     return <div className={styles.empty}>No track data</div>
   }
@@ -112,11 +136,21 @@ export default function ActivityMap({ points }: Props) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
-        <Polyline positions={positions} color="#f97316" weight={3} />
+        <Polyline positions={positions} color={"var(--color-accent)"} weight={3} />
         {markers.map(({ point, km }) => (
           <KmMarker key={km} point={point} km={km} />
         ))}
         <FitBounds points={points} />
+        {onHoverDist && (
+          <MapHoverTracker points={points} cumDists={cumDists} onHoverDist={onHoverDist} />
+        )}
+        {hoverPoint && (
+          <CircleMarker
+            center={[hoverPoint.lat, hoverPoint.lon]}
+            radius={7}
+            pathOptions={{ color: "var(--color-white)", fillColor: "var(--color-hover-dot)", fillOpacity: 1, weight: 2 }}
+          />
+        )}
       </MapContainer>
     </div>
   )
