@@ -1,0 +1,26 @@
+.button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.buttonCollapsed {
+  justify-content: center;
+  padding: var(--space-2);
+}
+
+.button:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
